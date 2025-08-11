@@ -36,7 +36,7 @@ def apply_dtmf():
         if time not in times_set:
             continue
         for i, p in enumerate(arr):
-            pl = p()
+            pl = p
             if ('РЕКЛАМА' in pl) or ('zakr_737-446' in pl) or ('zakr_00_737-446' in pl):
                 if not pl.endswith('_dtmf.mp3'):
                     arr[i] = p.replace('.mp3', '_DTMF.mp3')
