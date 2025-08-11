@@ -48,7 +48,15 @@ def generate_north():
                 continue
             dt, ins, dels, lin = parts
             key = dt.strip()
-            insert_map[key] = [x.strip() for x in ins.split(',') if x.strip()]
+            def _ensure_mp3(name: str) -> str | None:
+                n = name.strip().strip('"').strip("'")
+                if not n:
+                    return None
+                return n if n.lower().endswith('.mp3') else n + '.mp3'
+
+            insert_map[key] = [ _ensure_mp3(x) for x in ins.split(',') ]
+            insert_map[key] = [ x for x in insert_map[key] if x ]
+            
             delete_map[key] = [x.strip().lower() for x in dels.split(',') if x.strip()]
             if lin.strip().lower() == 'yes':
                 liner_map.add(key)
