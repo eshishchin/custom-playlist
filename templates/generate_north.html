@@ -1,0 +1,64 @@
+<h2>Создание плейлиста для Бельц</h2>
+<form method="post" onsubmit="prepareData(event)">
+  <table id="block-table" border="1" cellpadding="5">
+    <tr>
+      <th>Дата и время (DD.MM.YYYY HH:MM:SS)</th>
+      <th>Insert</th>
+      <th>Delete</th>
+      <th>Liner</th>
+    </tr>
+  </table>
+  <button type="button" onclick="addRow()">Добавить строку</button><br><br>
+  <input type="hidden" name="rows" id="rows">
+  <input type="submit" value="Собрать">
+</form>
+<a href='/'>Назад</a>
+
+<script>
+function addRow() {
+  const tbl = document.getElementById('block-table');
+  const row = tbl.insertRow();
+  row.insertCell(0).innerHTML = `
+    <input type='date' class='date-input'>
+    <select class='hour-input'>
+      ${Array.from({length: 24}, (_, i) => `<option value='${i.toString().padStart(2, '0')}'>${i.toString().padStart(2, '0')}</option>`).join('')}
+    </select>:
+    <select class='minute-input'>
+      <option value='25'>25</option>
+      <option value='41'>41</option>
+    </select>:00
+  `;
+  row.insertCell(1).innerHTML = "<input type='text' placeholder='insert1.wav, insert2.wav'>";
+  row.insertCell(2).innerHTML = "<input type='text' placeholder='ключевые слова через запятую'>";
+  row.insertCell(3).innerHTML = "<select><option value='no'>Нет</option><option value='yes'>Да</option></select>";
+}
+
+function prepareData(evt) {
+  evt.preventDefault();
+  const tbl = document.getElementById('block-table');
+  const rows = [];
+
+  for (let i = 1; i < tbl.rows.length; i++) {
+    const cells = tbl.rows[i].cells;
+
+    const date = cells[0].querySelector('.date-input')?.value || '';
+    const hour = cells[0].querySelector('.hour-input')?.value || '00';
+    const minute = cells[0].querySelector('.minute-input')?.value || '00';
+
+    if (!date) continue;
+
+    const [yyyy, mm, dd] = date.split('-');
+    const formattedDate = `${dd}.${mm}.${yyyy}`;
+    const dt = `${formattedDate} ${hour}:${minute}:00`;
+
+    const ins = cells[1].querySelector('input').value;
+    const dels = cells[2].querySelector('input').value;
+    const lin = cells[3].querySelector('select').value;
+
+    rows.push(`${dt}|${ins}|${dels}|${lin}`);
+  }
+
+  document.getElementById('rows').value = rows.join('\n');
+  evt.target.submit();
+}
+</script>
