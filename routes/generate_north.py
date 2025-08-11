@@ -73,8 +73,8 @@ def generate_north():
         for time_key in all_keys:
             if time_key in blocks:
                 for i, line in enumerate(blocks[time_key]):
-                    ll = line.lower()
-                    if ('реклама' in ll) or ('zakr_00_737-446' in ll) or ('zakr_737-446' in ll):
+                    ll = line()
+                    if ('РЕКЛАМА' in ll) or ('zakr_00_737-446' in ll) or ('zakr_737-446' in ll):
                         if not ll.endswith('_dtmf.mp3'):
                             blocks[time_key][i] = line.replace('.mp3', '_DTMF.mp3')
 
