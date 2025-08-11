@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Custom Playlist — результат</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100">
+  <div class="max-w-4xl mx-auto p-6">
+    <header class="mb-6 flex items-center justify-between">
+      <h1 class="text-2xl font-semibold">Обработанные блоки</h1>
+      <nav class="flex gap-2">
+        <a class="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700" href="/">Назад</a>
+        <a class="px-3 py-2 rounded-xl bg-white text-zinc-900 hover:bg-zinc-200" href="/upload-to-air">Загрузить на эфир</a>
+      </nav>
+    </header>
+
+    <div class="space-y-4">
+      {% for time, paths in blocks.items() %}
+      <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40">
+        <div class="px-4 py-2 text-sm text-zinc-400 border-b border-zinc-800">{{ time }}</div>
+        <ul class="px-4 py-3 text-sm leading-6">
+          {% for path in paths %}
+            <li class="text-zinc-200">{{ path }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

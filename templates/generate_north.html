@@ -1,64 +1,145 @@
-<h2>Создание плейлиста для Бельц</h2>
-<form method="post" onsubmit="prepareData(event)">
-  <table id="block-table" border="1" cellpadding="5">
-    <tr>
-      <th>Дата и время (DD.MM.YYYY HH:MM:SS)</th>
-      <th>Insert</th>
-      <th>Delete</th>
-      <th>Liner</th>
-    </tr>
-  </table>
-  <button type="button" onclick="addRow()">Добавить строку</button><br><br>
-  <input type="hidden" name="rows" id="rows">
-  <input type="submit" value="Собрать">
-</form>
-<a href='/'>Назад</a>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Северный плейлист — сборка</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100">
+  <div class="max-w-5xl mx-auto p-6">
+    <header class="mb-6 flex items-center justify-between">
+      <h2 class="text-2xl font-semibold">Создание плейлиста для Бельц</h2>
+      <a href="/" class="px-4 py-2 rounded-2xl bg-zinc-800 hover:bg-zinc-700">Назад</a>
+    </header>
+
+    {% if need_upload %}
+      <div class="rounded-xl bg-red-900/40 border border-red-800 px-4 py-3 text-sm mb-4">
+        Сначала загрузите и обработайте основной плейлист.
+      </div>
+    {% endif %}
+
+    <form method="post" onsubmit="prepareData(event)" class="space-y-4">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="text-sm text-zinc-400">Дата возьмётся из имени файла:</div>
+        <span class="px-3 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-sm" id="dateBadge">
+          {{ date_ymd or 'не определено' }}
+        </span>
+      </div>
+
+      <div class="overflow-x-auto rounded-2xl border border-zinc-800">
+        <table id="block-table" class="min-w-full text-sm">
+          <thead class="bg-zinc-900/60">
+            <tr>
+              <th class="text-left px-3 py-2">Время</th>
+              <th class="text-left px-3 py-2">Insert (через запятую)</th>
+              <th class="text-left px-3 py-2">Delete (ключевые слова)</th>
+              <th class="text-left px-3 py-2">Liner</th>
+              <th class="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="flex gap-3">
+        <button type="button" onclick="addRow()" class="px-4 py-2 rounded-2xl bg-red-600 hover:bg-red-500">Добавить строку</button>
+        <button type="submit" class="px-4 py-2 rounded-2xl bg-white text-zinc-900 hover:bg-zinc-200">Собрать</button>
+      </div>
+
+      <input type="hidden" name="rows" id="rows">
+    </form>
+  </div>
+
+  {% if success_path %}
+  <div id="northModal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-zinc-900 rounded-2xl w-full max-w-lg border border-zinc-800 shadow-xl">
+      <div class="px-5 py-3 border-b border-zinc-800 flex items-center justify-between">
+        <h3 class="font-semibold">Северный плейлист сохранён</h3>
+        <button class="text-zinc-400 hover:text-zinc-200" onclick="closeModal('northModal')">✕</button>
+      </div>
+      <div class="p-5 text-sm">
+        Путь: <code class="text-zinc-300">{{ success_path }}</code>
+      </div>
+      <div class="px-5 py-3 border-t border-zinc-800 flex gap-2 justify-end">
+        <a href="/" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700">На главную</a>
+        <button class="px-4 py-2 rounded-xl bg-white text-zinc-900 hover:bg-zinc-200" onclick="closeModal('northModal')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
 <script>
-function addRow() {
-  const tbl = document.getElementById('block-table');
-  const row = tbl.insertRow();
-  row.insertCell(0).innerHTML = `
-    <input type='date' class='date-input'>
-    <select class='hour-input'>
-      ${Array.from({length: 24}, (_, i) => `<option value='${i.toString().padStart(2, '0')}'>${i.toString().padStart(2, '0')}</option>`).join('')}
-    </select>:
-    <select class='minute-input'>
-      <option value='25'>25</option>
-      <option value='41'>41</option>
-    </select>:00
-  `;
-  row.insertCell(1).innerHTML = "<input type='text' placeholder='insert1.wav, insert2.wav'>";
-  row.insertCell(2).innerHTML = "<input type='text' placeholder='ключевые слова через запятую'>";
-  row.insertCell(3).innerHTML = "<select><option value='no'>Нет</option><option value='yes'>Да</option></select>";
-}
+  const dateYMD = "{{ date_ymd or '' }}"; // YYYY-MM-DD из сервера
 
-function prepareData(evt) {
-  evt.preventDefault();
-  const tbl = document.getElementById('block-table');
-  const rows = [];
+  function addRow(prefill) {
+    const tbody = document.getElementById('tbody');
+    const tr = document.createElement('tr');
+    tr.className = "border-b border-zinc-800";
+    tr.innerHTML = `
+      <td class="px-3 py-2">
+        <div class="flex items-center gap-2">
+          <select class='hour-input bg-zinc-900 rounded-md px-2 py-1'>
+            ${Array.from({length:24},(_,i)=>`<option value='${String(i).padStart(2,'0')}'>${String(i).padStart(2,'0')}</option>`).join('')}
+          </select>
+          :
+          <select class='minute-input bg-zinc-900 rounded-md px-2 py-1'>
+            <option value='25'>25</option>
+            <option value='41'>41</option>
+          </select>
+          :00
+        </div>
+      </td>
+      <td class="px-3 py-2"><input type='text' class="w-full bg-zinc-900 rounded-md px-2 py-1" placeholder='insert1.wav, insert2.wav'></td>
+      <td class="px-3 py-2"><input type='text' class="w-full bg-zinc-900 rounded-md px-2 py-1" placeholder='ключевые слова через запятую'></td>
+      <td class="px-3 py-2">
+        <select class="bg-zinc-900 rounded-md px-2 py-1">
+          <option value='no'>Нет</option>
+          <option value='yes'>Да</option>
+        </select>
+      </td>
+      <td class="px-3 py-2">
+        <button type="button" class="text-red-400 hover:text-red-300" onclick="this.closest('tr').remove()">Удалить</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
 
-  for (let i = 1; i < tbl.rows.length; i++) {
-    const cells = tbl.rows[i].cells;
-
-    const date = cells[0].querySelector('.date-input')?.value || '';
-    const hour = cells[0].querySelector('.hour-input')?.value || '00';
-    const minute = cells[0].querySelector('.minute-input')?.value || '00';
-
-    if (!date) continue;
-
-    const [yyyy, mm, dd] = date.split('-');
-    const formattedDate = `${dd}.${mm}.${yyyy}`;
-    const dt = `${formattedDate} ${hour}:${minute}:00`;
-
-    const ins = cells[1].querySelector('input').value;
-    const dels = cells[2].querySelector('input').value;
-    const lin = cells[3].querySelector('select').value;
-
-    rows.push(`${dt}|${ins}|${dels}|${lin}`);
+    if (prefill) {
+      tr.querySelector('.hour-input').value = prefill.hour || '00';
+      tr.querySelector('.minute-input').value = prefill.minute || '25';
+      tr.cells[1].querySelector('input').value = prefill.insert || '';
+      tr.cells[2].querySelector('input').value = prefill.delete || '';
+      tr.cells[3].querySelector('select').value = prefill.liner || 'no';
+    }
   }
 
-  document.getElementById('rows').value = rows.join('\n');
-  evt.target.submit();
-}
+  function prepareData(evt) {
+    evt.preventDefault();
+    if (!dateYMD) { alert('Дата не определена из имени файла плейлиста.'); return; }
+
+    const [yyyy, mm, dd] = dateYMD.split('-');
+    const formattedDate = `${dd}.${mm}.${yyyy}`;
+
+    const rows = [];
+    const tbody = document.getElementById('tbody');
+    for (const tr of tbody.querySelectorAll('tr')) {
+      const hour = tr.querySelector('.hour-input')?.value || '00';
+      const minute = tr.querySelector('.minute-input')?.value || '00';
+
+      const ins = tr.cells[1].querySelector('input').value.trim();
+      const dels = tr.cells[2].querySelector('input').value.trim();
+      const lin = tr.cells[3].querySelector('select').value;
+
+      rows.push(`${formattedDate} ${hour}:${minute}:00|${ins}|${dels}|${lin}`);
+    }
+    document.getElementById('rows').value = rows.join('\n');
+    evt.target.submit();
+  }
+
+  function closeModal(id){ document.getElementById(id)?.remove(); }
+
+  // добавить одну пустую строку при загрузке
+  (function(){ addRow(); })();
 </script>
+</body>
+</html>

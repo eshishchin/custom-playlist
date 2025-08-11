@@ -1,59 +1,37 @@
-from flask import Blueprint, request, render_template_string
-from collections import defaultdict
-import os, shutil
-from config import FOOD_KEYWORDS, LINERS, BASE_INDEX
-import config
+# routes/index.py
+from flask import Blueprint, request, render_template, redirect, url_for
+from collections import defaultdict, OrderedDict
+from werkzeug.utils import secure_filename
+from config import FOOD_KEYWORDS, LINERS, BASE_INDEX, UPLOAD_DIR
+import config, os, shutil, json
 
 index_bp = Blueprint('index', __name__)
-
-LAST_SAVED_PATH = None
-
-UPLOAD_TEMPLATE = """
-<h2>Загрузка рекламного плейлиста</h2>
-<form method=\"post\" enctype=\"multipart/form-data\">
-    <label>Ключевые слова (отметьте нужные):</label><br>
-    {% for word in food_keywords %}
-    <input type=\"checkbox\" name=\"food_keywords\" value=\"{{ word }}\"> {{ word }}<br>
-    {% endfor %}<br>
-    <label>Файл плейлиста:</label><br>
-    <input type=\"file\" name=\"playlist\"><br><br>
-    <input type=\"submit\" value=\"Обработать\">
-</form>
-<p><a href=\"/generate-north\">Собрать плейлист для Бельц</a></p>
-"""
-
-RESULT_TEMPLATE = """
-<h2>Обработанные блоки:</h2>
-{% for time, paths in blocks.items() %}
-  <b>{{ time }}</b><br>
-  <ul>
-    {% for path in paths %}
-      <li>{{ path }}</li>
-    {% endfor %}
-  </ul>
-{% endfor %}
-<a href=\"/\">Назад</a> | <a href=\"/upload-to-air\">Загрузить на эфир</a>
-"""
 
 @index_bp.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
         selected_keywords = request.form.getlist('food_keywords')
-        file = request.files['playlist']
-        filename = os.path.basename(file.filename)
-        filepath = os.path.join("uploaded", filename)
-        backup_path = filepath + ".bak"
+        file = request.files.get('playlist')
 
-        os.makedirs("uploaded", exist_ok=True)
-        file.save(filepath)
-        shutil.copy(filepath, backup_path)
+        if not file or file.filename == '':
+            return render_template('upload.html', food_keywords=FOOD_KEYWORDS, error="Файл не выбран")
 
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                lines = f.read().splitlines()
-        except UnicodeDecodeError:
-            with open(filepath, 'r', encoding='cp1251') as f:
-                lines = f.read().splitlines()
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        filename = secure_filename(os.path.basename(file.filename))
+        filepath = UPLOAD_DIR / filename
+        backup_path = filepath.with_suffix(filepath.suffix + ".bak")
+
+        file.save(str(filepath))
+        shutil.copy(str(filepath), str(backup_path))
+
+        # чтение с fallback
+        for enc in ('utf-8', 'cp1251'):
+            try:
+                with open(filepath, 'r', encoding=enc) as f:
+                    lines = f.read().splitlines()
+                break
+            except UnicodeDecodeError:
+                continue
 
         blocks = defaultdict(list)
         for line in lines:
@@ -63,29 +41,43 @@ def index():
             time, path = parts
             blocks[time].append(path.strip('"'))
 
-        processed_blocks = {}
-        for idx, (time, paths) in enumerate(blocks.items()):
-            is_food = any(
-                word.lower() in path.lower()
-                for path in paths
-                for word in selected_keywords
-            )
+        processed = OrderedDict()
+        for idx, time in enumerate(sorted(blocks.keys())):
+            paths = blocks[time]
+            is_food = any(w.lower() in p.lower() for p in paths for w in selected_keywords)
             if is_food and LINERS:
                 for i in reversed(range(len(paths))):
-                    if 'zakr_00_737-446.mp3' in paths[i]:
-                        liner_filename = LINERS[(BASE_INDEX + idx) % len(LINERS)]
-                        full_liner_path = f"Реклама*Roliki\\{liner_filename}"
-                        paths.insert(i, full_liner_path)
+                    low = paths[i].lower()
+                    if 'zakr_00_737-446.mp3' in low or 'zakr_737-446' in low:
+                        liner = LINERS[(BASE_INDEX + idx) % len(LINERS)]
+                        paths.insert(i, f"Реклама*Roliki\\{liner}")
                         break
-            processed_blocks[time] = paths
+            processed[time] = paths
 
-        with open(filepath, 'wb') as f:
-            for time, paths in processed_blocks.items():
-                for path in paths:
-                    f.write(f"{time}\t\"{path}\"\r\n".encode('cp1251', errors='replace'))
+        with open(filepath, 'wb') as out:
+            for t, arr in processed.items():
+                for p in arr:
+                    out.write(f'{t}\t"{p}"\r\n'.encode('cp1251', errors='replace'))
 
-        config.LAST_SAVED_PATH = filepath
+        config.LAST_SAVED_PATH = str(filepath)
+        try:
+            config.STATE_FILE.write_text(
+                json.dumps({"last_path": config.LAST_SAVED_PATH}, ensure_ascii=False),
+                encoding="utf-8"
+            )
+        except Exception:
+            pass
 
-        return render_template_string(RESULT_TEMPLATE, blocks=processed_blocks)
+        # рендерим ту же страницу с модалкой результата
+        return render_template('upload.html',
+                               food_keywords=FOOD_KEYWORDS,
+                               error=None,
+                               blocks=processed,
+                               just_processed=True)
 
-    return render_template_string(UPLOAD_TEMPLATE, food_keywords=FOOD_KEYWORDS)
+    # GET
+    return render_template('upload.html',
+                           food_keywords=FOOD_KEYWORDS,
+                           error=None,
+                           blocks=None,
+                           just_processed=False)

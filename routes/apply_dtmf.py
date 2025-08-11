@@ -1,7 +1,8 @@
 from flask import Blueprint, request
-from config import LAST_SAVED_PATH
+from config import LAST_SAVED_PATH, AIR_DIR
 import os
 from collections import defaultdict
+from pathlib import Path
 
 dtmf_bp = Blueprint("dtmf", __name__)
 
@@ -12,7 +13,11 @@ def apply_dtmf():
 
     raw_times = request.form.get("dtmf_times", "")
     full_times = [line.strip() for line in raw_times.splitlines() if line.strip()]
-    times_only = [ft.split()[1] for ft in full_times if ' ' in ft]
+    times_only = []
+    for ft in full_times:
+        parts = ft.split()
+        if len(parts) >= 2:
+            times_only.append(parts[1])
 
     try:
         with open(LAST_SAVED_PATH, 'r', encoding='cp1251') as f:
@@ -23,25 +28,25 @@ def apply_dtmf():
     blocks = defaultdict(list)
     for line in lines:
         if '\t' in line:
-            time, path = line.split('\t')
+            time, path = line.split('\t', 1)
             blocks[time].append(path.strip('"'))
 
-    for time in times_only:
-        if time not in blocks:
+    times_set = set(times_only)
+    for time, arr in blocks.items():
+        if time not in times_set:
             continue
-        block = blocks[time]
-        for i in range(len(block)):
-            if 'РЕКЛАМА' in block[i] or 'zakr_737-446' in block[i]:
-                block[i] = block[i].replace('.mp3', '_DTMF.mp3')
+        for i, p in enumerate(arr):
+            pl = p.lower()
+            if ('реклама' in pl) or ('zakr_737-446' in pl) or ('zakr_00_737-446' in pl):
+                if not pl.endswith('_dtmf.mp3'):
+                    arr[i] = p.replace('.mp3', '_DTMF.mp3')
 
-    base_name = os.path.basename(LAST_SAVED_PATH)
-    chisinau_path = os.path.join("/mnt/synadyn/!Playlist/Reclama")
+    src_name = os.path.basename(LAST_SAVED_PATH)
+    dest_file = AIR_DIR / src_name
+    os.makedirs(dest_file.parent, exist_ok=True)
+    with open(dest_file, 'wb') as f:
+        for time in sorted(blocks.keys()):
+            for path in blocks[time]:
+                f.write(f"{time}\t\"{path}\"\r\n".encode('cp1251', errors='replace'))
 
-    os.makedirs(os.path.dirname(chisinau_path), exist_ok=True)
-    with open(chisinau_path, 'wb') as f:
-        for time, paths in blocks.items():
-            for path in paths:
-                line = f"{time}\t\"{path}\"\r\n"
-                f.write(line.encode('cp1251', errors='replace'))
-
-    return f"Файл для Кишинёва сохранён: {chisinau_path}"
+    return f"Файл для Кишинёва сохранён: {dest_file}"

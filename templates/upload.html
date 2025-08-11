@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Custom Playlist — загрузка</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100">
+  <div class="max-w-3xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-2xl font-semibold">Загрузка рекламного плейлиста</h1>
+      <p class="text-zinc-400 mt-1">Отметь ключевые слова и загрузи файл (.txt)</p>
+    </header>
+
+    {% if error %}
+      <div class="mb-4 rounded-xl bg-red-900/40 border border-red-800 px-4 py-3 text-sm">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+      <div>
+        <label class="block mb-2 text-sm text-zinc-300">Ключевые слова:</label>
+        <div class="grid grid-cols-2 gap-2">
+          {% for word in food_keywords %}
+          <label class="inline-flex items-center gap-2 bg-zinc-900/60 rounded-xl px-3 py-2">
+            <input type="checkbox" name="food_keywords" value="{{ word }}" class="accent-red-500">
+            <span>{{ word }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <label class="block mb-2 text-sm text-zinc-300">Файл плейлиста</label>
+        <input type="file" name="playlist"
+               class="file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-red-600 file:text-white
+                      hover:file:bg-red-500 bg-zinc-900 rounded-xl w-full p-2"/>
+      </div>
+
+      <div class="flex gap-3">
+        <button type="submit" class="px-4 py-2 rounded-2xl bg-white text-zinc-900 hover:bg-zinc-200">
+          Обработать
+        </button>
+        <a href="/generate-north" class="px-4 py-2 rounded-2xl bg-zinc-800 hover:bg-zinc-700">
+          Собрать плейлист для Бельц
+        </a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Modal: результат обработки -->
+  {% if blocks %}
+  <div id="resultModal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-zinc-900 rounded-2xl w-full max-w-3xl border border-zinc-800 shadow-xl">
+      <div class="px-5 py-3 border-b border-zinc-800 flex items-center justify-between">
+        <h3 class="font-semibold">Обработанные блоки</h3>
+        <button class="text-zinc-400 hover:text-zinc-200" onclick="closeModal('resultModal')">✕</button>
+      </div>
+      <div class="p-5 max-h-[60vh] overflow-y-auto text-sm leading-6">
+        {% for time, paths in blocks.items() %}
+        <div class="mb-3">
+          <div class="text-zinc-400 text-xs mb-1">{{ time }}</div>
+          <ul class="list-disc list-inside">
+            {% for p in paths %}<li class="text-zinc-200">{{ p }}</li>{% endfor %}
+          </ul>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="px-5 py-3 border-t border-zinc-800 flex gap-2 justify-end">
+        <a href="/upload-to-air" class="px-4 py-2 rounded-xl bg-white text-zinc-900 hover:bg-zinc-200">Загрузить на эфир</a>
+        <a href="/generate-north" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500">Собрать для Бельц</a>
+        <button class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700" onclick="closeModal('resultModal')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Modal: загружено на эфир -->
+  {% if request.args.get('uploaded') == '1' %}
+  <div id="uploadedModal" class="fixed inset-0 bg-black/60 flex items-center justify-center p-4">
+    <div class="bg-zinc-900 rounded-2xl w-full max-w-lg border border-zinc-800 shadow-xl">
+      <div class="px-5 py-3 border-b border-zinc-800 flex items-center justify-between">
+        <h3 class="font-semibold">Готово</h3>
+        <button class="text-zinc-400 hover:text-zinc-200" onclick="closeModal('uploadedModal')">✕</button>
+      </div>
+      <div class="p-5 text-sm">
+        Файл загружен на эфир:<br>
+        <code class="text-zinc-300">{{ request.args.get('dest') }}</code>
+      </div>
+      <div class="px-5 py-3 border-t border-zinc-800 flex gap-2 justify-end">
+        <a href="/generate-north" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500">Собрать для Бельц</a>
+        <button class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700" onclick="closeModal('uploadedModal')">Закрыть</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <script>
+    function closeModal(id){ document.getElementById(id)?.remove(); }
+  </script>
+</body>
+</html>
