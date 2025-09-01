@@ -3,7 +3,8 @@ from flask import Blueprint, request, render_template, redirect, url_for
 from collections import defaultdict, OrderedDict
 from werkzeug.utils import secure_filename
 from config import FOOD_KEYWORDS, LINERS, BASE_INDEX, UPLOAD_DIR
-import config, os, shutil, json
+import config, os, shutil
+from utils_last import set_last_saved_path
 
 index_bp = Blueprint('index', __name__)
 
@@ -59,14 +60,7 @@ def index():
                 for p in arr:
                     out.write(f'{t}\t"{p}"\r\n'.encode('cp1251', errors='replace'))
 
-        config.LAST_SAVED_PATH = str(filepath)
-        try:
-            config.STATE_FILE.write_text(
-                json.dumps({"last_path": config.LAST_SAVED_PATH}, ensure_ascii=False),
-                encoding="utf-8"
-            )
-        except Exception:
-            pass
+        set_last_saved_path(str(filepath))
 
         # рендерим ту же страницу с модалкой результата
         return render_template('upload.html',

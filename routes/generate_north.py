@@ -5,6 +5,7 @@ from collections import defaultdict, OrderedDict
 import random
 import config
 from datetime import datetime
+from utils_last import get_last_saved_path
 
 north_bp = Blueprint('generate_north', __name__)
 
@@ -34,7 +35,8 @@ def get_date_from_filename():
 def generate_north():
     date_ymd = get_date_from_filename()
     # если совсем нет файла — просим загрузить
-    if not config.LAST_SAVED_PATH or not os.path.exists(config.LAST_SAVED_PATH):
+    path = get_last_saved_path()
+    if not path:
         return render_template("generate_north.html", date_ymd=date_ymd, success_path=None, need_upload=True)
 
     if request.method == 'POST':
@@ -63,7 +65,7 @@ def generate_north():
 
         # читаем основной
         try:
-            with open(config.LAST_SAVED_PATH, 'r', encoding='cp1251') as f:
+            with open(path, 'r', encoding='cp1251') as f:
                 lines = f.read().splitlines()
         except:
             return render_template("generate_north.html", date_ymd=date_ymd, success_path=None, need_upload=True)
@@ -87,12 +89,12 @@ def generate_north():
                             blocks[time_key][i] = line.replace('.mp3', '_DTMF.mp3')
 
         # сохраняем основной файл
-        main_path = os.path.join("/mnt/synadyn/!Playlist/Reclama/", os.path.basename(config.LAST_SAVED_PATH))
+        main_path = os.path.join("/mnt/synadyn/!Playlist/Reclama/", os.path.basename(path))
         os.makedirs(os.path.dirname(main_path), exist_ok=True)
         with open(main_path, 'wb') as f:
             for time in sorted(blocks.keys()):
-                for path in blocks[time]:
-                    f.write(f"{time}\t\"{path}\"\r\n".encode('cp1251', errors='replace'))
+                for path_ in blocks[time]:
+                    f.write(f"{time}\t\"{path_}\"\r\n".encode('cp1251', errors='replace'))
 
         # собираем север
         sever_blocks = {}
@@ -128,12 +130,12 @@ def generate_north():
             sever_blocks[full_time] = block
 
         sever_path = os.path.join("/mnt/synadyn/!Playlist/Reclama/Sever/",
-                                  os.path.basename(config.LAST_SAVED_PATH))
+                                  os.path.basename(path))
         os.makedirs(os.path.dirname(sever_path), exist_ok=True)
         with open(sever_path, 'wb') as f:
             for time in sorted(sever_blocks.keys()):
-                for path in sever_blocks[time]:
-                    f.write(f"{time}\t\"{path}\"\r\n".encode('cp1251', errors='replace'))
+                for path_ in sever_blocks[time]:
+                    f.write(f"{time}\t\"{path_}\"\r\n".encode('cp1251', errors='replace'))
 
         # Рендерим ту же страницу, но с модалкой успеха
         return render_template("generate_north.html",
