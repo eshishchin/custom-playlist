@@ -1,12 +1,13 @@
 # routes/upload_to_air.py
 from flask import Blueprint, redirect, url_for
 import config, os, shutil
+from utils_last import get_last_saved_path
 
 upload_bp = Blueprint('upload_to_air', __name__)
 
 @upload_bp.route('/upload-to-air')
 def upload_to_air():
-    path = config.LAST_SAVED_PATH
+    path = get_last_saved_path()
     if path and os.path.exists(path):
         dest_path = os.path.join("/mnt/synadyn/!Playlist/Reclama/", os.path.basename(path))
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
