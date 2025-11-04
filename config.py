@@ -6,7 +6,7 @@ FOOD_KEYWORDS = [
     "Kauf",
     "Local",
     "Kfc",
-    "Linella"
+    "Linella",
     "Mezellini"
 ]
 
