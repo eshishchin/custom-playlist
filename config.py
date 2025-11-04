@@ -7,6 +7,7 @@ FOOD_KEYWORDS = [
     "Local",
     "Kfc",
     "Linella"
+    "Mezellini"
 ]
 
 # Фиксированный список лайнеров
