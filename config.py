@@ -8,7 +8,8 @@ FOOD_KEYWORDS = [
     "Kfc",
     "Linella",
     "Mezellini",
-    "Nivalli"
+    "Nivalli",
+    "Rogob"
 ]
 
 # Фиксированный список лайнеров
