@@ -9,7 +9,8 @@ FOOD_KEYWORDS = [
     "Linella",
     "Mezellini",
     "Nivalli",
-    "Rogob"
+    "Rogob",
+    "Slav"
 ]
 
 # Фиксированный список лайнеров
