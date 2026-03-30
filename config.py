@@ -10,7 +10,7 @@ FOOD_KEYWORDS = [
     "Mezellini",
     "Nivalli",
     "Rogob",
-    "Slav"
+    "Slav",
     "Basavin"
 ]
 
