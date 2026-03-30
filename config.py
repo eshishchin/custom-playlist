@@ -11,6 +11,7 @@ FOOD_KEYWORDS = [
     "Nivalli",
     "Rogob",
     "Slav"
+    "Basavin"
 ]
 
 # Фиксированный список лайнеров
